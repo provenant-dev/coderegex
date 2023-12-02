@@ -141,14 +141,16 @@ class ScanRule:
                     if rule.right or rule.needs_operator:
                         raise ValueError("Group must be preceded by an operator.")
                     rule = ScanRule()
-                    stack.push(rule)
+                    stack.append(rule)
                 elif token == ')':
                     child = stack.pop()
+                    rule = stack[-1]
                     if not rule.left:
                         # This condition is caused by unnecessary parens. Remove any rule
                         # that does nothing but hold a child.
                         stack.pop()
-                        stack.push(child)
+                        stack.append(child)
+                        rule = child
                     else:
                         rule.set_next_operand(child)
             if len(stack) > 1:
@@ -200,10 +202,10 @@ class ScanRule:
 
     def __call__(self, content):
         def call_or_match(regex_or_rule, content):
-            return regex_or_rule.match(content) if isinstance(regex_or_rule, re.Pattern) else regex_or_rule(content)
+            return regex_or_rule.search(content) if isinstance(regex_or_rule, re.Pattern) else regex_or_rule(content)
 
         o = self.operator
-        if o is None or o == 'AND':
+        if o is None or o == 'AND' or o == 'OR':
             l = call_or_match(self.left, content)
         if o is None:
             return l
